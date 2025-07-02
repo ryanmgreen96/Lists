@@ -1,0 +1,146 @@
+@font-face {
+    font-family: 'Centaur';
+    src: url('Centaur.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    background-color: #550000;
+    color: #d4af37;
+    font-family: 'Centaur', serif;
+    margin: 0;
+    padding: 2em 0;
+    display: flex;
+    justify-content: center;
+}
+
+#app {
+    width: 900px;
+    max-width: 95vw;
+    margin-left:2em;
+}
+
+button {
+    background: none;
+    color: #d4af37;
+    border: none;
+    font-size: 1.2em;
+    margin: 0 0.3em 0.6em 0;
+    padding: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+#new-section-btn {
+    margin-bottom: 1em;
+    font-weight: bold;
+}
+
+#new-section-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 1.5em; }
+
+        .section {
+            margin-bottom: 12em;
+            /* instead of top margin */     }
+
+.entry {
+    margin-bottom: 2em;
+}
+
+.entry-label {
+    font-weight: bold;
+    font-size: 1.4em;
+    margin-bottom: 0.3em;
+    user-select: none;
+    outline: none; 
+}
+
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
+.item-checkbox {
+    width: .6em;
+    height: .6em;
+    border: 2px solid #d4af37;
+    cursor: pointer;
+    flex-shrink: 0;
+    background-color: transparent;
+}
+
+.item-checkbox.checked {
+    background-color: #306e21;
+}
+
+.item-text {
+    flex-grow: 1;
+    min-width: 100px;
+    max-width: calc(900px - 3.5em);
+    outline: none;
+    background: none;
+    color: #dbcb98;
+    font-size: 1.1em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    border: none;
+    padding: 0;
+}
+
+.add-item-btn {
+    margin-top: 0.6em;
+    font-weight: bold;
+    font-size: .8em;
+    user-select: none;
+}
+
+.add-entry-btn {
+    margin-top: 0.6em;
+    font-weight: bold;
+    font-size: 1.4em;
+    user-select: none;
+}
+
+#new-section-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 1.5em;
+}
+
+.entry-label[contenteditable="true"] {
+    cursor: text;
+}
+
+.color-btn {
+    font-size: 0.9em;
+    padding: 0.2em 0.5em;
+    border: 1px solid #d4af37;
+    background-color: transparent;
+    color: #d4af37;
+    cursor: pointer; }
+
+/* Responsive for tablet/phone */
+@media (max-width: 900px) {
+    #app {
+        width: 95vw;
+    }
+
+    .item-text {
+        max-width: calc(95vw - 3.5em);
+    }
+}
