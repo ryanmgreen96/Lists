@@ -1,22 +1,71 @@
+const GIST_ID = 'baa504912ab3a632923628226086f467';  // your Gist ID
+const GIST_FILENAME = 'notes.json';                  // your Gist file name
+const GITHUB_TOKEN = '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';       // your GitHub token — keep private!
+
 const defaultEntries = ["Grocery", "Work", "Music", "Yoga", "Chores"];
 
-let data = JSON.parse(localStorage.getItem('noteAppData')) || [];
+let data = [];  // Will load from Gist on startup
 
-// Save data to localStorage
-function saveData() {
-    localStorage.setItem('noteAppData', JSON.stringify(data));
+// Generate a unique ID for items and entries
+function generateId() {
+    return '_' + Math.random().toString(36).substr(2, 9);
 }
+
+// Save data to your Gist via API
+async function saveData() {
+    try {
+        const body = {
+            files: {
+                [GIST_FILENAME]: {
+                    content: JSON.stringify(data, null, 2)
+                }
+            }
+        };
+        const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${GITHUB_TOKEN}`
+            },
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error('Failed to save gist');
+    } catch (error) {
+        console.error('Error saving data to gist:', error);
+    }
+}
+
+// Load data from your Gist via API
+async function loadData() {
+    try {
+        const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+            headers: {
+                Authorization: `Bearer ${GITHUB_TOKEN}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to load gist');
+        const gistData = await response.json();
+        const content = gistData.files[GIST_FILENAME]?.content;
+        if (!content) throw new Error('Gist file not found');
+        data = JSON.parse(content);
+
+        if (!Array.isArray(data) || data.length === 0) {
+            createNewSection();  // if gist empty, create initial data
+        } else {
+            render();
+        }
+    } catch (error) {
+        console.error('Error loading data from gist:', error);
+        // Fallback: create new section if no data or error
+        createNewSection();
+    }
+}
+
 function applySavedBackgroundColor() {
     const savedColor = localStorage.getItem('backgroundColor');
     if (savedColor) {
         $('body').css('background-color', savedColor);
     }
-}
-applySavedBackgroundColor();  
-
-// Generate a unique ID for items and entries
-function generateId() {
-    return '_' + Math.random().toString(36).substr(2, 9);
 }
 
 // Render the entire app
@@ -34,11 +83,11 @@ function render() {
             const entryLabel = $('<div contenteditable="true">')
                 .addClass('entry-label')
                 .text(entry.text)
-                .on('input', () => {
+                .on('input', async () => {
                     entry.text = entryLabel.text();
-                    saveData();
+                    await saveData();
                 });
-          
+
             entryDiv.append(entryLabel);
 
             // Items container
@@ -51,11 +100,11 @@ function render() {
                 const checkbox = $('<div>').addClass('item-checkbox').attr('tabindex', 0);
                 if (item.done) checkbox.addClass('checked');
 
-                checkbox.on('click keydown', function (e) {
+                checkbox.on('click keydown', async function (e) {
                     if (e.type === 'click' || (e.type === 'keydown' && (e.key === 'Enter' || e.key === ' '))) {
                         checkbox.toggleClass('checked');
                         item.done = !item.done;
-                        saveData();
+                        await saveData();
                     }
                 });
 
@@ -63,12 +112,11 @@ function render() {
                 const itemText = $('<div contenteditable="true">')
                     .addClass('item-text')
                     .text(item.text)
-                    .on('input', () => {
+                    .on('input', async () => {
                         item.text = itemText.text();
-                        saveData();
+                        await saveData();
                     })
                     .on('paste', e => {
-                        // Prevent formatting paste
                         e.preventDefault();
                         const text = (e.originalEvent || e).clipboardData.getData('text/plain');
                         document.execCommand('insertText', false, text);
@@ -81,13 +129,13 @@ function render() {
             // Add item button below items
             const addItemBtn = $('<button>').addClass('add-item-btn').text('+');
 
-            addItemBtn.on('click', () => {
+            addItemBtn.on('click', async () => {
                 entry.items.push({
                     id: generateId(),
                     text: '',
                     done: false,
                 });
-                saveData();
+                await saveData();
                 render();
             });
 
@@ -98,7 +146,7 @@ function render() {
         // Add entry button below all entries
         const addEntryBtn = $('<button>').addClass('add-entry-btn').text('+');
 
-        addEntryBtn.on('click', () => {
+        addEntryBtn.on('click', async () => {
             section.entries.push({
                 id: generateId(),
                 text: 'New Entry',
@@ -108,7 +156,7 @@ function render() {
                     done: false,
                 }]
             });
-            saveData();
+            await saveData();
             render();
         });
 
@@ -135,31 +183,24 @@ function createNewSection() {
     render();
 }
 
-// Initial load
-if (data.length === 0) {
-    createNewSection();
-} else {
-    render();
-}
+$(document).ready(async function () {
+    applySavedBackgroundColor();
 
-$('#new-section-btn').on('click', () => {
-    createNewSection();
-});
+    $('#new-section-btn').on('click', async () => {
+        createNewSection();
+    });
 
-$(document).ready(function () {
     $('.color-btn').on('click', function () {
         const color = $(this).data('color');
         $('body').css('background-color', color);
         localStorage.setItem('backgroundColor', color);
     });
-});
-  
-  
 
+    // Load data from gist on startup
+    await loadData();
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js')
             .then(() => console.log('Service Worker registered'));
-  }
-
-
+    }
+});
