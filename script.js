@@ -1,6 +1,6 @@
 const GIST_ID = 'baa504912ab3a632923628226086f467';  // your Gist ID
 const GIST_FILENAME = 'notes.json';                  // your Gist file name
-const GITHUB_TOKEN = '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';    
+const GITHUB_TOKEN = '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';    
 
 let data = [];
 
