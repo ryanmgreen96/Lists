@@ -6,7 +6,10 @@ const FILES_TO_CACHE = [
   '/script.js',
   '/Centaur.woff2',
   '/manifest.json',
-  '/icon.png'
+  '/icon.png',
+  '/Centaur.woff2',
+  '/jquery.min.js'
+  
 ];
 
 self.addEventListener('install', (event) => {
