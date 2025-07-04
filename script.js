@@ -1,84 +1,25 @@
-const GIST_ID = 'baa504912ab3a632923628226086f467';  // your Gist ID
-const GIST_FILENAME = 'notes.json';                  // your Gist file name
-const GITHUB_TOKEN = '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';    
+const defaultEntries = ["Grocery", "Work", "Music", "Yoga", "Chores"];
 
-let data = [];
+let data = JSON.parse(localStorage.getItem('noteAppData')) || [];
 
+// Save data to localStorage
+function saveData() {
+    localStorage.setItem('noteAppData', JSON.stringify(data));
+}
+function applySavedBackgroundColor() {
+    const savedColor = localStorage.getItem('backgroundColor');
+    if (savedColor) {
+        $('body').css('background-color', savedColor);
+    }
+}
+applySavedBackgroundColor();
+
+// Generate a unique ID for items and entries
 function generateId() {
     return '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// Load data from GitHub Gist
-async function loadDataFromGist() {
-    try {
-        const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-            headers: {
-                Authorization: `token ${GITHUB_TOKEN}`,
-            }
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch gist');
-
-        const gist = await response.json();
-        const content = gist.files[FILE_NAME]?.content;
-
-        data = content ? JSON.parse(content) : [];
-        if (data.length === 0) createNewSection();
-        render();
-    } catch (e) {
-        console.error('Error loading from Gist:', e);
-        data = [];
-        createNewSection();
-        render();
-    }
-}
-
-// Save data to GitHub Gist
-async function saveDataToGist() {
-    try {
-        const body = {
-            files: {
-                [FILE_NAME]: {
-                    content: JSON.stringify(data)
-                }
-            }
-        };
-
-        const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-            method: 'PATCH',
-            headers: {
-                Authorization: `token ${GITHUB_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        });
-
-        if (!response.ok) throw new Error('Failed to save gist');
-    } catch (e) {
-        console.error('Error saving to Gist:', e);
-    }
-}
-
-function saveData() {
-    saveDataToGist();
-    localStorage.setItem('noteAppData', JSON.stringify(data)); // optional backup
-}
-
-function createNewSection() {
-    const defaultEntries = ["Grocery", "Work", "Music", "Yoga", "Chores"];
-    const section = {
-        entries: defaultEntries.map(name => ({
-            id: generateId(),
-            text: name,
-            items: [{ id: generateId(), text: '', done: false }]
-        }))
-    };
-    data.unshift(section);
-    saveData();
-    render();
-}
-
-// Example render function (simplified)
+// Render the entire app
 function render() {
     const container = $('#sections-container');
     container.empty();
@@ -86,57 +27,86 @@ function render() {
     data.forEach((section, sectionIndex) => {
         const sectionDiv = $('<div>').addClass('section');
 
+        // Render all entries inside this section
         section.entries.forEach((entry, entryIndex) => {
             const entryDiv = $('<div>').addClass('entry');
 
-            const label = $('<div contenteditable="true">')
+            const entryLabel = $('<div contenteditable="true">')
                 .addClass('entry-label')
                 .text(entry.text)
                 .on('input', () => {
-                    entry.text = label.text();
+                    entry.text = entryLabel.text();
                     saveData();
                 });
 
+            entryDiv.append(entryLabel);
+
+            // Items container
             const itemsList = $('<div>').addClass('items-list');
 
+            // Render items
             entry.items.forEach((item, itemIndex) => {
                 const itemDiv = $('<div>').addClass('item');
 
                 const checkbox = $('<div>').addClass('item-checkbox').attr('tabindex', 0);
                 if (item.done) checkbox.addClass('checked');
-                checkbox.on('click', () => {
-                    item.done = !item.done;
-                    checkbox.toggleClass('checked');
-                    saveData();
+
+                checkbox.on('click keydown', function (e) {
+                    if (e.type === 'click' || (e.type === 'keydown' && (e.key === 'Enter' || e.key === ' '))) {
+                        checkbox.toggleClass('checked');
+                        item.done = !item.done;
+                        saveData();
+                    }
                 });
 
+                // Editable text div
                 const itemText = $('<div contenteditable="true">')
                     .addClass('item-text')
                     .text(item.text)
                     .on('input', () => {
                         item.text = itemText.text();
                         saveData();
+                    })
+                    .on('paste', e => {
+                        // Prevent formatting paste
+                        e.preventDefault();
+                        const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+                        document.execCommand('insertText', false, text);
                     });
 
                 itemDiv.append(checkbox, itemText);
                 itemsList.append(itemDiv);
             });
 
-            const addItemBtn = $('<button>').text('+').on('click', () => {
-                entry.items.push({ id: generateId(), text: '', done: false });
+            // Add item button below items
+            const addItemBtn = $('<button>').addClass('add-item-btn').text('+');
+
+            addItemBtn.on('click', () => {
+                entry.items.push({
+                    id: generateId(),
+                    text: '',
+                    done: false,
+                });
                 saveData();
                 render();
             });
 
-            entryDiv.append(label, itemsList, addItemBtn);
+            entryDiv.append(itemsList, addItemBtn);
             sectionDiv.append(entryDiv);
         });
 
-        const addEntryBtn = $('<button>').text('+').on('click', () => {
+        // Add entry button below all entries
+        const addEntryBtn = $('<button>').addClass('add-entry-btn').text('+');
+
+        addEntryBtn.on('click', () => {
             section.entries.push({
                 id: generateId(),
                 text: 'New Entry',
-                items: [{ id: generateId(), text: '', done: false }]
+                items: [{
+                    id: generateId(),
+                    text: '',
+                    done: false,
+                }]
             });
             saveData();
             render();
@@ -147,31 +117,49 @@ function render() {
     });
 }
 
-// Section and background controls
+// Create a new section with default entries and one blank item per entry
+function createNewSection() {
+    const newSection = {
+        entries: defaultEntries.map(name => ({
+            id: generateId(),
+            text: name,
+            items: [{
+                id: generateId(),
+                text: '',
+                done: false,
+            }]
+        }))
+    };
+    data.unshift(newSection);
+    saveData();
+    render();
+}
+
+// Initial load
+if (data.length === 0) {
+    createNewSection();
+} else {
+    render();
+}
+
 $('#new-section-btn').on('click', () => {
     createNewSection();
 });
 
-$('.color-btn').on('click', function () {
-    const color = $(this).data('color');
-    $('body').css('background-color', color);
-    localStorage.setItem('backgroundColor', color);
+$(document).ready(function () {
+    $('.color-btn').on('click', function () {
+        const color = $(this).data('color');
+        $('body').css('background-color', color);
+        localStorage.setItem('backgroundColor', color);
+    });
 });
 
-function applySavedBackgroundColor() {
-    const savedColor = localStorage.getItem('backgroundColor');
-    if (savedColor) {
-        $('body').css('background-color', savedColor);
-    }
-}
 
-// Start
-$(document).ready(() => {
-    applySavedBackgroundColor();
-    loadDataFromGist();
-});
+
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js')
         .then(() => console.log('Service Worker registered'));
 }
+
+
