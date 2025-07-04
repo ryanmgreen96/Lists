@@ -1,11 +1,11 @@
-const defaultEntries = ["Grocery", "Work", "Music", "Yoga", "Chores"];
+const defaultEntries = ["Tasks", "Music", "Yoga", "Grocery", "Chores", "Work"];
 
 let data = JSON.parse(localStorage.getItem('noteAppData')) || [];
 
-// Save data to localStorage
 function saveData() {
     localStorage.setItem('noteAppData', JSON.stringify(data));
 }
+
 function applySavedBackgroundColor() {
     const savedColor = localStorage.getItem('backgroundColor');
     if (savedColor) {
@@ -14,21 +14,18 @@ function applySavedBackgroundColor() {
 }
 applySavedBackgroundColor();
 
-// Generate a unique ID for items and entries
 function generateId() {
     return '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// Render the entire app
 function render() {
     const container = $('#sections-container');
     container.empty();
 
-    data.forEach((section, sectionIndex) => {
+    data.forEach((section) => {
         const sectionDiv = $('<div>').addClass('section');
 
-        // Render all entries inside this section
-        section.entries.forEach((entry, entryIndex) => {
+        section.entries.forEach((entry) => {
             const entryDiv = $('<div>').addClass('entry');
 
             const entryLabel = $('<div contenteditable="true">')
@@ -41,16 +38,20 @@ function render() {
 
             entryDiv.append(entryLabel);
 
-            // Items container
+            const isTaskList = entry.text.trim().toLowerCase() === 'tasks';
             const itemsList = $('<div>').addClass('items-list');
 
-            // Render items
-            entry.items.forEach((item, itemIndex) => {
+            if (isTaskList) itemsList.css({
+                'flex-direction': 'row',
+                'flex-wrap': 'wrap',
+                'gap': '0.5em'
+            });
+
+            entry.items.forEach((item) => {
                 const itemDiv = $('<div>').addClass('item');
 
                 const checkbox = $('<div>').addClass('item-checkbox').attr('tabindex', 0);
                 if (item.done) checkbox.addClass('checked');
-
                 checkbox.on('click keydown', function (e) {
                     if (e.type === 'click' || (e.type === 'keydown' && (e.key === 'Enter' || e.key === ' '))) {
                         checkbox.toggleClass('checked');
@@ -59,7 +60,6 @@ function render() {
                     }
                 });
 
-                // Editable text div
                 const itemText = $('<div contenteditable="true">')
                     .addClass('item-text')
                     .text(item.text)
@@ -68,7 +68,6 @@ function render() {
                         saveData();
                     })
                     .on('paste', e => {
-                        // Prevent formatting paste
                         e.preventDefault();
                         const text = (e.originalEvent || e).clipboardData.getData('text/plain');
                         document.execCommand('insertText', false, text);
@@ -78,35 +77,34 @@ function render() {
                 itemsList.append(itemDiv);
             });
 
-            // Add item button below items
             const addItemBtn = $('<button>').addClass('add-item-btn').text('+');
-
             addItemBtn.on('click', () => {
-                entry.items.push({
-                    id: generateId(),
-                    text: '',
-                    done: false,
-                });
+                entry.items.push({ id: generateId(), text: '', done: false });
                 saveData();
                 render();
             });
 
             entryDiv.append(itemsList, addItemBtn);
+
+            if (isTaskList) {
+                const refreshBtn = $('<button>').addClass('add-item-btn').text('⟳');
+                refreshBtn.on('click', () => {
+                    entry.items = [];
+                    saveData();
+                    render();
+                });
+                entryDiv.append(refreshBtn);
+            }
+
             sectionDiv.append(entryDiv);
         });
 
-        // Add entry button below all entries
         const addEntryBtn = $('<button>').addClass('add-entry-btn').text('+');
-
         addEntryBtn.on('click', () => {
             section.entries.push({
                 id: generateId(),
                 text: 'New Entry',
-                items: [{
-                    id: generateId(),
-                    text: '',
-                    done: false,
-                }]
+                items: [{ id: generateId(), text: '', done: false }]
             });
             saveData();
             render();
@@ -117,16 +115,15 @@ function render() {
     });
 }
 
-// Create a new section with default entries and one blank item per entry
 function createNewSection() {
     const newSection = {
         entries: defaultEntries.map(name => ({
             id: generateId(),
             text: name,
-            items: [{
+            items: name.toLowerCase() === 'tasks' ? [] : [{
                 id: generateId(),
                 text: '',
-                done: false,
+                done: false
             }]
         }))
     };
@@ -135,7 +132,6 @@ function createNewSection() {
     render();
 }
 
-// Initial load
 if (data.length === 0) {
     createNewSection();
 } else {
@@ -154,12 +150,7 @@ $(document).ready(function () {
     });
 });
 
-
-
-
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js')
         .then(() => console.log('Service Worker registered'));
 }
-
-
