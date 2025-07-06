@@ -6,30 +6,25 @@ const firestoreDocRef = doc(db, 'notes', 'sharedNote'); // you can name the doc 
 async function loadNotesFromFirestore() {
     try {
         const docSnap = await getDoc(firestoreDocRef);
-        if (docSnap.exists()) {
-            const firestoreData = docSnap.data();
-            const localData = localStorage.getItem('noteAppData');
+        const localData = localStorage.getItem('noteAppData');
 
-            // Only load Firestore data if local storage is empty
-            if (!localData && firestoreData.data) {
+        if (localData) {
+            // If local notes exist, use them
+            data = JSON.parse(localData);
+            render();
+        } else if (docSnap.exists()) {
+            const firestoreData = docSnap.data();
+            if (firestoreData.data) {
                 data = firestoreData.data;
-                saveData(); // save to localStorage too
+                saveData(); // Save to localStorage as backup
                 render();
-            } else if (localData) {
-                // Local data exists, use that
-                data = JSON.parse(localData);
-                render();
-            } else {
-                // Nothing in local or Firestore, create new
-                createNewSection();
             }
         } else {
-            // Firestore doc doesn't exist, create new section
-            createNewSection();
+            createNewSection(); // No local or Firestore data
         }
     } catch (e) {
         console.error('Error loading from Firestore', e);
-        // fallback: try local data or create new
+
         const localData = localStorage.getItem('noteAppData');
         if (localData) {
             data = JSON.parse(localData);
@@ -39,6 +34,7 @@ async function loadNotesFromFirestore() {
         }
     }
 }
+
 
 
 async function saveNotesToFirestore(dataToSave) {
@@ -216,9 +212,8 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js')
         .then(() => console.log('Service Worker registered'));
 }
-
 window.addEventListener('online', () => {
-    console.log('Back online: syncing to Firestore');
+    console.log('Back online — syncing changes to Firestore.');
     saveNotesToFirestore(data);
 });
 
