@@ -1,10 +1,46 @@
+const { doc, getDoc, setDoc } = window.firestoreFunctions;
+const db = window.firestoreDB;
+
+const firestoreDocRef = doc(db, 'notes', 'sharedNote'); // you can name the doc anything
+
+async function loadNotesFromFirestore() {
+    try {
+        const docSnap = await getDoc(firestoreDocRef);
+        if (docSnap.exists()) {
+            const firestoreData = docSnap.data();
+            if (firestoreData.data) {
+                data = firestoreData.data;
+                render();
+            }
+        }
+    } catch (e) {
+        console.error('Error loading from Firestore', e);
+    }
+}
+
+async function saveNotesToFirestore(dataToSave) {
+    try {
+        await setDoc(firestoreDocRef, { data: dataToSave });
+    } catch (e) {
+        console.error('Error saving to Firestore', e);
+    }
+}
+
+
+
+
+
+
+
 const defaultEntries = ["Tasks", "Music", "Yoga", "Grocery", "Chores", "Work"];
 
 let data = JSON.parse(localStorage.getItem('noteAppData')) || [];
 
 function saveData() {
     localStorage.setItem('noteAppData', JSON.stringify(data));
+    saveNotesToFirestore(data);
 }
+  
 
 function applySavedBackgroundColor() {
     const savedColor = localStorage.getItem('backgroundColor');
@@ -132,11 +168,14 @@ function createNewSection() {
     render();
 }
 
-if (data.length === 0) {
-    createNewSection();
-} else {
-    render();
-}
+loadNotesFromFirestore().then(() => {
+    // If no data was loaded from Firestore, fallback:
+    if (data.length === 0) {
+        createNewSection();
+    } else {
+        render();
+    }
+});
 
 $('#new-section-btn').on('click', () => {
     createNewSection();
